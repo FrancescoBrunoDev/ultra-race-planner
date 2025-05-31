@@ -1,5 +1,4 @@
-import { IS_BROWSER } from "$fresh/runtime.ts";
-import { useRef, useEffect, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { ElevationPoint } from "../utils/types.ts";
 import { calculateEstimatedTime, calculateRequiredPace, formatPace, formatTime } from "../utils/timeCalculator.ts";
 import { Button } from "../components/Button.tsx";

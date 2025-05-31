@@ -77,16 +77,27 @@ export default function GpxVisualizer() {
     const savedFileName = loadFromLocalStorage(STORAGE_KEYS.FILE_NAME);
 
     if (loadedState === "true" && savedContent) {
-      fileContent.value = savedContent;
-      fileName.value = savedFileName || "";
-
-      // Elabora i dati GPX se non sono già elaborati
-      if (elevationData.value.length === 0) {
+      // Se il contenuto è cambiato rispetto a quello attuale, aggiorna tutto
+      if (savedContent !== fileContent.value) {
+        fileContent.value = savedContent;
+        fileName.value = savedFileName || "";
+        
         try {
+          // Rielabora sempre i dati GPX in caso di cambiamenti
           const points = processGpxData(savedContent);
           elevationData.value = points;
         } catch (error) {
           console.error("Errore nell'elaborazione del file GPX:", error);
+        }
+      } else {
+        // Se il contenuto è lo stesso ma i dati non sono elaborati
+        if (elevationData.value.length === 0) {
+          try {
+            const points = processGpxData(savedContent);
+            elevationData.value = points;
+          } catch (error) {
+            console.error("Errore nell'elaborazione del file GPX:", error);
+          }
         }
       }
     } else {
@@ -103,10 +114,26 @@ export default function GpxVisualizer() {
 
     // Configura un listener per gli eventi di cambiamento dello stato del file
     const handleFileStateChange = () => {
+      // Forza il controllo dello stato e la rilettura dei dati
       checkFileLoadedState();
     };
 
+    // Gestisce gli eventi di storage per sincronizzare più schede
+    const handleStorageEvent = (event: StorageEvent) => {
+      if (
+        event.key === STORAGE_KEYS.FILE_CONTENT || 
+        event.key === STORAGE_KEYS.FILE_IS_LOADED ||
+        event.key === STORAGE_KEYS.FILE_NAME
+      ) {
+        checkFileLoadedState();
+      }
+    };
+
     document.addEventListener("gpx-file-state-changed", handleFileStateChange);
+    globalThis.addEventListener("storage", handleStorageEvent);
+
+    // Imposta un polling periodico per verificare i cambiamenti (fallback)
+    const intervalId = setInterval(checkFileLoadedState, 500);
 
     // Cleanup
     return () => {
@@ -114,8 +141,14 @@ export default function GpxVisualizer() {
         "gpx-file-state-changed",
         handleFileStateChange
       );
+      globalThis.removeEventListener("storage", handleStorageEvent);
+      clearInterval(intervalId);
     };
   }, []);
+
+  // Creiamo un identificatore unico basato sul file che cambia ogni volta che il file cambia
+  // In questo modo forziamo il remount completo dei componenti
+  const fileKey = `${fileName.value}-${Date.now()}`;
 
   return (
     <div className={`max-w-6xl mx-auto ${fileContent.value ? "mt-16" : ""}`}>
@@ -133,11 +166,11 @@ export default function GpxVisualizer() {
       )}
 
       {elevationData.value.length > 0 && (
-        <>
+        <div key={fileKey}>
           <ElevationChart data={elevationData.value} />
           <ElevationSummary data={elevationData.value} />
           <TimeCalculator data={elevationData.value} />
-        </>
+        </div>
       )}
 
       {elevationData.value.length === 0 && fileContent.value && (

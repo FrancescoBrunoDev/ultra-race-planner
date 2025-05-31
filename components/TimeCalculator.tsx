@@ -35,6 +35,30 @@ export default function TimeCalculator({ data }: TimeCalculatorProps) {
   const [activeTab, setActiveTab] = useState<"pace" | "split" | "checkpoints">(
     "pace"
   );
+  // Memorizziamo i percorsi correnti per rilevare i cambiamenti
+  const [currentDataChecksum, setCurrentDataChecksum] = useState<string>("");
+
+  // Monitora i cambiamenti nei dati di input
+  useEffect(() => {
+    // Creiamo un checksum semplice basato sui primi e ultimi punti del percorso
+    if (data && data.length > 0) {
+      const startPoint = data[0];
+      const endPoint = data[data.length - 1];
+      const checksum = `${startPoint.distance}-${startPoint.elevation}-${endPoint.distance}-${endPoint.elevation}`;
+      
+      // Se il checksum è diverso, i dati sono cambiati (è stato caricato un nuovo file)
+      if (checksum !== currentDataChecksum) {
+        console.log("Rilevato nuovo percorso, resetting dei calcoli...");
+        setCurrentDataChecksum(checksum);
+        
+        // Reimpostiamo lo stato interno per il nuovo percorso
+        setRequiredPace("");
+        setEstimatedTime("");
+        setEstimatedTimeOptimistic("");
+        setEstimatedTimePessimistic("");
+      }
+    }
+  }, [data]);
 
   // Carica i valori salvati dal localStorage all'avvio del componente
   useEffect(() => {

@@ -61,7 +61,15 @@ export default function NavBar() {
         // Se arriviamo qui, il file è valido
         fileContent.value = content;
 
-        // Salva nel localStorage
+        // Reimposta qualsiasi calcolo precedente quando si cambia file
+        removeFromLocalStorage(STORAGE_KEYS.CHECKPOINTS);
+        removeFromLocalStorage(STORAGE_KEYS.TARGET_TIME);
+        removeFromLocalStorage(STORAGE_KEYS.USER_PACE);
+        removeFromLocalStorage(STORAGE_KEYS.ESTIMATED_TIME);
+        removeFromLocalStorage(STORAGE_KEYS.REQUIRED_PACE);
+        removeFromLocalStorage(STORAGE_KEYS.BASE_PACE_VALUE);
+
+        // Salva nel localStorage il nuovo file
         saveToLocalStorage(STORAGE_KEYS.FILE_CONTENT, content);
         saveToLocalStorage(STORAGE_KEYS.FILE_IS_LOADED, "true");
 

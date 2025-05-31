@@ -1,4 +1,3 @@
-import { useSignal } from "@preact/signals";
 import { JSX } from "preact";
 
 interface FileUploaderProps {

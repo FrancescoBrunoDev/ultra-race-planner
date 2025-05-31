@@ -29,6 +29,12 @@ export default function GpxVisualizer() {
   // Gestisce il reset dei dati
   const handleReset = useCallback(() => {
     removeFromLocalStorage(STORAGE_KEYS.FILE_CONTENT);
+    removeFromLocalStorage(STORAGE_KEYS.CHECKPOINTS);
+    removeFromLocalStorage(STORAGE_KEYS.TARGET_TIME);
+    removeFromLocalStorage(STORAGE_KEYS.USER_PACE);
+    removeFromLocalStorage(STORAGE_KEYS.ESTIMATED_TIME);
+    removeFromLocalStorage(STORAGE_KEYS.REQUIRED_PACE);
+    removeFromLocalStorage(STORAGE_KEYS.BASE_PACE_VALUE);
     fileContent.value = null;
     elevationData.value = [];
   }, []);
@@ -44,7 +50,7 @@ export default function GpxVisualizer() {
   }, []); // Solo al primo montaggio del componente
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-6xl mx-auto p-4">
       <FileUploader 
         onFileLoaded={(content) => {
           fileContent.value = content;

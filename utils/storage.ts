@@ -1,6 +1,12 @@
 // Costante per le chiavi di Local Storage
 export const STORAGE_KEYS = {
     FILE_CONTENT: "gpx-visualizer-file-content",
+    CHECKPOINTS: "ultra-race-planner-checkpoints",
+    TARGET_TIME: "ultra-race-planner-target-time",
+    USER_PACE: "ultra-race-planner-user-pace",
+    ESTIMATED_TIME: "ultra-race-planner-estimated-time",
+    REQUIRED_PACE: "ultra-race-planner-required-pace",
+    BASE_PACE_VALUE: "ultra-race-planner-base-pace-value",
     // In futuro altre chiavi possono essere aggiunte qui
 };
 

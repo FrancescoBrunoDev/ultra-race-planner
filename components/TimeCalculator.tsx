@@ -1,7 +1,11 @@
-import { useState } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
 import { ElevationPoint } from "../utils/types.ts";
 import { calculateEstimatedTime, calculateRequiredPace, formatPace, formatTime } from "../utils/timeCalculator.ts";
 import { Button } from "../components/Button.tsx";
+import PaceChart from "../components/PaceChart.tsx";
+import CourseSplitChart from "../components/CourseSplitChart.tsx";
+import CheckpointCalculator from "../components/CheckpointCalculator.tsx";
+import { STORAGE_KEYS, saveToLocalStorage, loadFromLocalStorage } from "../utils/storage.ts";
 
 interface TimeCalculatorProps {
   data: ElevationPoint[];
@@ -12,8 +16,92 @@ export default function TimeCalculator({ data }: TimeCalculatorProps) {
   const [requiredPace, setRequiredPace] = useState("");
   const [estimatedTime, setEstimatedTime] = useState("");
   const [userPace, setUserPace] = useState("");
+  const [basePaceValue, setBasePaceValue] = useState<number | null>(null);
+  const [showPaceChart, setShowPaceChart] = useState(false);
+  const [showCourseSplit, setShowCourseSplit] = useState(false);
+  const [activeTab, setActiveTab] = useState<"pace" | "split" | "checkpoints">("pace");
+  
+  // Carica i valori salvati dal localStorage all'avvio del componente
+  useEffect(() => {
+    const savedTargetTime = loadFromLocalStorage(STORAGE_KEYS.TARGET_TIME);
+    const savedUserPace = loadFromLocalStorage(STORAGE_KEYS.USER_PACE);
+    const savedEstimatedTime = loadFromLocalStorage(STORAGE_KEYS.ESTIMATED_TIME);
+    const savedRequiredPace = loadFromLocalStorage(STORAGE_KEYS.REQUIRED_PACE);
+    const savedBasePaceValue = loadFromLocalStorage(STORAGE_KEYS.BASE_PACE_VALUE);
+    
+    if (savedTargetTime) {
+      setTargetTime(savedTargetTime);
+    }
+    
+    if (savedUserPace) {
+      setUserPace(savedUserPace);
+    }
+    
+    if (savedEstimatedTime) {
+      setEstimatedTime(savedEstimatedTime);
+    }
+    
+    if (savedRequiredPace) {
+      setRequiredPace(savedRequiredPace);
+    }
+    
+    // Carica il ritmo base se è disponibile e mostra i grafici
+    if (savedBasePaceValue) {
+      try {
+        const paceValue = parseFloat(savedBasePaceValue);
+        if (!isNaN(paceValue)) {
+          setBasePaceValue(paceValue);
+          setShowPaceChart(true);
+          setShowCourseSplit(true);
+        }
+      } catch (error) {
+        console.error("Errore nel parsing del ritmo base salvato:", error);
+      }
+    } else if (savedRequiredPace) {
+      // Fallback: se abbiamo un ritmo salvato ma non il valore base, proviamo a calcolarlo
+      try {
+        const [min, sec] = savedRequiredPace.split(":").map(Number);
+        if (!isNaN(min) && !isNaN(sec)) {
+          const paceValue = min + (sec / 60);
+          setBasePaceValue(paceValue);
+          setShowPaceChart(true);
+          setShowCourseSplit(true);
+        }
+      } catch (error) {
+        console.error("Errore nel parsing del ritmo salvato:", error);
+      }
+    }
+  }, []);
   
   const totalDistance = data.length > 0 ? data[data.length - 1].distance : 0;
+  
+  // Calcola il dislivello totale positivo e negativo
+  const calculateElevationStats = () => {
+    let totalAscent = 0;
+    let totalDescent = 0;
+    
+    if (data.length > 1) {
+      for (let i = 1; i < data.length; i++) {
+        const elevDiff = data[i].elevation - data[i-1].elevation;
+        if (elevDiff > 0) {
+          totalAscent += elevDiff;
+        } else {
+          totalDescent += Math.abs(elevDiff);
+        }
+      }
+    }
+    
+    return { totalAscent, totalDescent };
+  };
+  
+  const { totalAscent, totalDescent } = calculateElevationStats();
+  
+  // Salva il valore basePace ogni volta che cambia
+  useEffect(() => {
+    if (basePaceValue !== null) {
+      saveToLocalStorage(STORAGE_KEYS.BASE_PACE_VALUE, basePaceValue.toString());
+    }
+  }, [basePaceValue]);
   
   // Gestisce il calcolo del ritmo necessario per raggiungere l'obiettivo temporale
   const handleCalculateRequiredPace = () => {
@@ -25,7 +113,15 @@ export default function TimeCalculator({ data }: TimeCalculatorProps) {
     
     // Calcola il ritmo richiesto
     const pace = calculateRequiredPace(data, targetTimeMinutes);
-    setRequiredPace(formatPace(pace));
+    const formattedPace = formatPace(pace);
+    setRequiredPace(formattedPace);
+    setBasePaceValue(pace);
+    setShowPaceChart(true);
+    setShowCourseSplit(true);
+    
+    // Salva nel localStorage
+    saveToLocalStorage(STORAGE_KEYS.TARGET_TIME, targetTime);
+    saveToLocalStorage(STORAGE_KEYS.REQUIRED_PACE, formattedPace);
   };
   
   // Gestisce il calcolo del tempo stimato in base al ritmo inserito
@@ -38,12 +134,39 @@ export default function TimeCalculator({ data }: TimeCalculatorProps) {
     
     // Calcola il tempo stimato
     const timeMinutes = calculateEstimatedTime(data, paceMinutes);
-    setEstimatedTime(formatTime(timeMinutes));
+    const formattedTime = formatTime(timeMinutes);
+    setEstimatedTime(formattedTime);
+    setBasePaceValue(paceMinutes);
+    setShowPaceChart(true);
+    setShowCourseSplit(true);
+    
+    // Salva nel localStorage
+    saveToLocalStorage(STORAGE_KEYS.USER_PACE, userPace);
+    saveToLocalStorage(STORAGE_KEYS.ESTIMATED_TIME, formattedTime);
   };
   
   return (
     <div className="bg-white p-4 rounded-lg shadow-md mt-6">
       <h2 className="text-xl font-bold mb-4">Calcolo Tempo e Ritmo</h2>
+      
+      {/* Sommario del percorso */}
+      <div className="bg-blue-50 p-3 rounded-lg mb-4">
+        <div className="flex justify-between flex-wrap">
+          <div className="mb-2">
+            <span className="text-sm text-gray-600">Distanza totale:</span>
+            <p className="font-bold">{totalDistance.toFixed(2)} km</p>
+          </div>
+          <div className="mb-2">
+            <span className="text-sm text-gray-600">Dislivello positivo:</span>
+            <p className="font-bold">{Math.round(totalAscent)} m</p>
+          </div>
+          <div className="mb-2">
+            <span className="text-sm text-gray-600">Dislivello negativo:</span>
+            <p className="font-bold">{Math.round(totalDescent)} m</p>
+          </div>
+        </div>
+        <p className="text-sm italic">I calcoli includono l'effetto del dislivello sulla velocità</p>
+      </div>
       
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-2">Calcola il ritmo necessario</h3>
@@ -100,16 +223,87 @@ export default function TimeCalculator({ data }: TimeCalculatorProps) {
             <div className="bg-gray-100 p-3 rounded-lg">
               <p className="text-sm text-gray-600">Con un ritmo di {userPace} min/km su {totalDistance.toFixed(2)} km</p>
               <p className="font-bold text-green-600">Tempo stimato: {estimatedTime}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                (Considerando {Math.round(totalAscent)}m D+ e {Math.round(totalDescent)}m D-)
+              </p>
             </div>
           )}
         </div>
       </div>
       
-      <div className="mt-6 text-sm text-gray-500">
+      {/* Tab per i grafici e checkpoint */}
+      {(showPaceChart || showCourseSplit) && basePaceValue && (
+        <div className="mt-6 border-t border-gray-200 pt-4">
+          <div className="mb-4 border-b">
+            <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
+              <li className="mr-2">
+                <button
+                  onClick={() => setActiveTab("pace")}
+                  className={`inline-block p-4 rounded-t-lg ${activeTab === "pace" ? 
+                    'text-blue-600 border-b-2 border-blue-600' : 
+                    'hover:text-gray-600 hover:border-gray-300'}`}
+                >
+                  Ritmo per segmento
+                </button>
+              </li>
+              <li className="mr-2">
+                <button
+                  onClick={() => setActiveTab("split")}
+                  className={`inline-block p-4 rounded-t-lg ${activeTab === "split" ? 
+                    'text-blue-600 border-b-2 border-blue-600' : 
+                    'hover:text-gray-600 hover:border-gray-300'}`}
+                >
+                  Suddivisione tratti
+                </button>
+              </li>
+              <li className="mr-2">
+                <button
+                  onClick={() => setActiveTab("checkpoints")}
+                  className={`inline-block p-4 rounded-t-lg ${activeTab === "checkpoints" ? 
+                    'text-blue-600 border-b-2 border-blue-600' : 
+                    'hover:text-gray-600 hover:border-gray-300'}`}
+                >
+                  Punti intermedi
+                </button>
+              </li>
+            </ul>
+          </div>
+          
+          {activeTab === "pace" && (
+            <div>
+              <p className="text-sm text-gray-600 mb-3">
+                Il grafico mostra il ritmo previsto in ogni segmento del percorso in base alla pendenza.
+                Le barre rosse/arancioni indicano ritmi più lenti (salite), mentre quelle verdi/blu indicano ritmi più veloci o normali.
+                La linea viola mostra la pendenza in ogni punto.
+              </p>
+              <PaceChart data={data} basePace={basePaceValue} showGrade={true} />
+            </div>
+          )}
+          
+          {activeTab === "split" && (
+            <div>
+              <p className="text-sm text-gray-600 mb-3">
+                Qui puoi vedere il percorso suddiviso in tratti di salita, discesa e pianura. Per ogni tratto è indicata
+                la distanza (barre), il tempo stimato (linea), il dislivello e la pendenza media.
+              </p>
+              <CourseSplitChart data={data} basePace={basePaceValue} />
+            </div>
+          )}
+          
+          {activeTab === "checkpoints" && (
+            <div>
+              <CheckpointCalculator data={data} basePaceValue={basePaceValue} />
+            </div>
+          )}
+        </div>
+      )}
+      
+      <div className="mt-6 p-3 bg-yellow-50 rounded-lg text-sm">
         <p>
-          <strong>Nota:</strong> Le stime considerano il dislivello del percorso. 
+          <strong>Come funziona:</strong> Il calcolatore tiene conto del dislivello del percorso. 
           Le salite rallentano il ritmo (fino a +50% per pendenze estreme), 
           mentre le discese lo accelerano (fino a -20% per discese ripide).
+          Ogni segmento del percorso viene analizzato separatamente in base alla pendenza.
         </p>
       </div>
     </div>

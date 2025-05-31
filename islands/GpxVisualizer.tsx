@@ -60,27 +60,63 @@ export default function GpxVisualizer() {
     notifyFileStateChange();
   }, []);
 
-  // Carica i dati dal LocalStorage al primo caricamento
-  useEffect(() => {
+  // Funzione per ascoltare gli eventi di file caricato/resettato
+  const checkFileLoadedState = useCallback(() => {
+    const loadedState = loadFromLocalStorage(STORAGE_KEYS.FILE_IS_LOADED);
     const savedContent = loadFromLocalStorage(STORAGE_KEYS.FILE_CONTENT);
-    if (savedContent) {
-      saveToLocalStorage(STORAGE_KEYS.FILE_IS_LOADED, "true");
+
+    if (loadedState === "true" && savedContent) {
       fileContent.value = savedContent;
-      handleGpxProcess(savedContent);
-      console.log("Dati GPX ripristinati dal localStorage");
+
+      // Elabora i dati GPX se non sono già elaborati
+      if (elevationData.value.length === 0) {
+        try {
+          const points = processGpxData(savedContent);
+          elevationData.value = points;
+        } catch (error) {
+          console.error("Errore nell'elaborazione del file GPX:", error);
+        }
+      }
+    } else {
+      fileContent.value = null;
+      elevationData.value = [];
     }
+  }, []);
+
+  // Carica i dati dal LocalStorage al primo caricamento e configura i listener
+  useEffect(() => {
+    // Controlla subito lo stato del file
+    checkFileLoadedState();
+
+    // Configura un listener per gli eventi di cambiamento dello stato del file
+    const handleFileStateChange = () => {
+      checkFileLoadedState();
+    };
+
+    document.addEventListener("gpx-file-state-changed", handleFileStateChange);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener(
+        "gpx-file-state-changed",
+        handleFileStateChange
+      );
+    };
   }, []); // Solo al primo montaggio del componente
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <FileUploader
-        onFileLoaded={(content) => {
-          fileContent.value = content;
-          handleGpxProcess(content);
-        }}
-        onReset={handleReset}
-        hasFile={fileContent.value !== null}
-      />
+    <div className={`max-w-6xl mx-auto ${fileContent.value ? "mt-8" : ""}`}>
+      {/* FileUploader mostrato solo se non c'è ancora un file caricato */}
+      {!fileContent.value && (
+        <FileUploader
+          onFileLoaded={(content) => {
+            fileContent.value = content;
+            handleGpxProcess(content);
+          }}
+          onReset={handleReset}
+          hasFile={false}
+        />
+      )}
 
       {elevationData.value.length > 0 && (
         <>

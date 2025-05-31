@@ -18,7 +18,7 @@ export default function FileUploader({
 }: FileUploaderProps) {
   // State per memorizzare il nome del file caricato
   const [fileName, setFileName] = useState<string>(externalFileName || "");
-  
+
   // Aggiorna il nome del file quando cambia la prop esterna
   useEffect(() => {
     if (externalFileName) {
@@ -36,7 +36,7 @@ export default function FileUploader({
       // Salva il nome del file
       const fileNameToSave = file.name;
       setFileName(fileNameToSave);
-      
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target?.result as string;
@@ -58,10 +58,15 @@ export default function FileUploader({
             <span className="text-sm text-green-600 font-medium mr-2">
               {fileName ? (
                 <span title={fileName}>
-                  File: <strong className="font-bold">{fileName.length > 20 ? fileName.substring(0, 17) + '...' : fileName}</strong>
+                  File:{" "}
+                  <strong className="font-bold">
+                    {fileName.length > 20
+                      ? fileName.substring(0, 17) + "..."
+                      : fileName}
+                  </strong>
                 </span>
               ) : (
-                'File GPX caricato'
+                "File GPX caricato"
               )}
             </span>
             <button

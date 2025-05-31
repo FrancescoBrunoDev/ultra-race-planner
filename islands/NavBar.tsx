@@ -52,33 +52,38 @@ export default function NavBar() {
   }, []);
 
   // Gestisce il caricamento del file
-  const handleFileLoaded = useCallback((content: string, uploadedFileName?: string) => {
-    try {
-      // Elabora il file GPX per verificare che sia valido
-      processGpxData(content);
+  const handleFileLoaded = useCallback(
+    (content: string, uploadedFileName?: string) => {
+      try {
+        // Elabora il file GPX per verificare che sia valido
+        processGpxData(content);
 
-      // Se arriviamo qui, il file è valido
-      fileContent.value = content;
+        // Se arriviamo qui, il file è valido
+        fileContent.value = content;
 
-      // Salva nel localStorage
-      saveToLocalStorage(STORAGE_KEYS.FILE_CONTENT, content);
-      saveToLocalStorage(STORAGE_KEYS.FILE_IS_LOADED, "true");
-      
-      // Salva anche il nome del file, se disponibile
-      if (uploadedFileName) {
-        fileName.value = uploadedFileName;
-        saveToLocalStorage(STORAGE_KEYS.FILE_NAME, uploadedFileName);
+        // Salva nel localStorage
+        saveToLocalStorage(STORAGE_KEYS.FILE_CONTENT, content);
+        saveToLocalStorage(STORAGE_KEYS.FILE_IS_LOADED, "true");
+
+        // Salva anche il nome del file, se disponibile
+        if (uploadedFileName) {
+          fileName.value = uploadedFileName;
+          saveToLocalStorage(STORAGE_KEYS.FILE_NAME, uploadedFileName);
+        }
+
+        fileIsLoaded.value = true;
+
+        // Notifica il cambiamento di stato
+        notifyFileStateChange();
+      } catch (error) {
+        console.error("Errore nell'elaborazione del file GPX:", error);
+        alert(
+          "Errore nell'elaborazione del file GPX. Verifica che il file sia valido."
+        );
       }
-
-      fileIsLoaded.value = true;
-
-      // Notifica il cambiamento di stato
-      notifyFileStateChange();
-    } catch (error) {
-      console.error("Errore nell'elaborazione del file GPX:", error);
-      alert("Errore nell'elaborazione del file GPX. Verifica che il file sia valido.");
-    }
-  }, []);
+    },
+    []
+  );
 
   // Controlla quando il componente viene montato
   useEffect(() => {
@@ -86,7 +91,7 @@ export default function NavBar() {
     const checkFileLoadedState = () => {
       const loadedState = loadFromLocalStorage(STORAGE_KEYS.FILE_IS_LOADED);
       fileIsLoaded.value = loadedState === "true";
-      
+
       // Se è caricato, ottieni anche il contenuto
       if (loadedState === "true") {
         fileContent.value = loadFromLocalStorage(STORAGE_KEYS.FILE_CONTENT);

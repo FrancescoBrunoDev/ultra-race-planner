@@ -28,13 +28,18 @@ const DOWNHILL_FACTORS: GradeFactors = {
  * 
  * @param points - Array di punti di elevazione con dati di distanza
  * @param basePaceMinPerKm - Ritmo base in minuti per km (su terreno pianeggiante)
+ * @param estimationType - Tipo di stima: "standard" (default), "optimistic" o "pessimistic"
  * @returns Tempo totale stimato in minuti
  */
 export function calculateEstimatedTime(
   points: ElevationPoint[],
-  basePaceMinPerKm: number
+  basePaceMinPerKm: number,
+  estimationType: "standard" | "optimistic" | "pessimistic" = "standard"
 ): number {
   if (points.length < 2) return 0;
+
+  // Fattore di correzione basato sul tipo di stima
+  const optimismFactor = estimationType === "optimistic" ? 0.95 : (estimationType === "pessimistic" ? 1.05 : 1.0);
 
   let totalTimeMinutes = 0;
 
@@ -71,8 +76,8 @@ export function calculateEstimatedTime(
       else paceFactor = DOWNHILL_FACTORS["20+"];
     }
 
-    // Calcola il tempo per questo segmento considerando il fattore di pendenza
-    const segmentTimeMinutes = segmentDistance * basePaceMinPerKm * paceFactor;
+    // Calcola il tempo per questo segmento considerando il fattore di pendenza e il fattore di ottimismo/pessimismo
+    const segmentTimeMinutes = segmentDistance * basePaceMinPerKm * paceFactor * optimismFactor;
     totalTimeMinutes += segmentTimeMinutes;
   }
 

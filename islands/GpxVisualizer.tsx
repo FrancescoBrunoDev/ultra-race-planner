@@ -34,7 +34,7 @@ export default function GpxVisualizer() {
       // Salva nel Local Storage
       saveToLocalStorage(STORAGE_KEYS.FILE_CONTENT, gpxString);
       saveToLocalStorage(STORAGE_KEYS.FILE_IS_LOADED, "true"); // Indica che un file è stato caricato
-      
+
       // Salva anche il nome del file se disponibile
       if (name) {
         fileName.value = name;
@@ -118,7 +118,7 @@ export default function GpxVisualizer() {
   }, []);
 
   return (
-    <div className={`max-w-6xl mx-auto ${fileContent.value ? 'mt-16' : ''}`}>
+    <div className={`max-w-6xl mx-auto ${fileContent.value ? "mt-16" : ""}`}>
       {/* FileUploader mostrato solo se non c'è ancora un file caricato */}
       {!fileContent.value && (
         <FileUploader

@@ -5,6 +5,7 @@ import { processGpxData } from "../utils/gpxProcessor.ts";
 import { ElevationPoint } from "../utils/types.ts";
 import ElevationChart from "../components/ElevationChart.tsx";
 import ElevationSummary from "../components/ElevationSummary.tsx";
+import TimeCalculator from "../components/TimeCalculator.tsx";
 import FileUploader from "../components/FileUploader.tsx";
 
 export default function GpxVisualizer() {
@@ -57,6 +58,7 @@ export default function GpxVisualizer() {
         <>
           <ElevationChart data={elevationData.value} />
           <ElevationSummary data={elevationData.value} />
+          <TimeCalculator data={elevationData.value} />
         </>
       )}
 

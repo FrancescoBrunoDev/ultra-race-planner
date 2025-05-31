@@ -1,3 +1,4 @@
+// filepath: /workspaces/ultra-race-planner/islands/NavBar.tsx
 import {
   STORAGE_KEYS,
   loadFromLocalStorage,
@@ -21,6 +22,7 @@ const createStorageListener = (callback: () => void) => {
 export default function NavBar() {
   const fileIsLoaded = useSignal<boolean>(false);
   const fileContent = useSignal<string | null>(null);
+  const fileName = useSignal<string>("");
 
   // Funzione per notificare i cambiamenti di stato del file
   const notifyFileStateChange = () => {
@@ -38,17 +40,19 @@ export default function NavBar() {
     removeFromLocalStorage(STORAGE_KEYS.ESTIMATED_TIME);
     removeFromLocalStorage(STORAGE_KEYS.REQUIRED_PACE);
     removeFromLocalStorage(STORAGE_KEYS.BASE_PACE_VALUE);
+    removeFromLocalStorage(STORAGE_KEYS.FILE_NAME);
     saveToLocalStorage(STORAGE_KEYS.FILE_IS_LOADED, "false");
 
     fileContent.value = null;
     fileIsLoaded.value = false;
+    fileName.value = "";
 
     // Notifica il cambiamento di stato
     notifyFileStateChange();
   }, []);
 
   // Gestisce il caricamento del file
-  const handleFileLoaded = useCallback((content: string) => {
+  const handleFileLoaded = useCallback((content: string, uploadedFileName?: string) => {
     try {
       // Elabora il file GPX per verificare che sia valido
       processGpxData(content);
@@ -59,6 +63,12 @@ export default function NavBar() {
       // Salva nel localStorage
       saveToLocalStorage(STORAGE_KEYS.FILE_CONTENT, content);
       saveToLocalStorage(STORAGE_KEYS.FILE_IS_LOADED, "true");
+      
+      // Salva anche il nome del file, se disponibile
+      if (uploadedFileName) {
+        fileName.value = uploadedFileName;
+        saveToLocalStorage(STORAGE_KEYS.FILE_NAME, uploadedFileName);
+      }
 
       fileIsLoaded.value = true;
 
@@ -66,9 +76,7 @@ export default function NavBar() {
       notifyFileStateChange();
     } catch (error) {
       console.error("Errore nell'elaborazione del file GPX:", error);
-      alert(
-        "Errore nell'elaborazione del file GPX. Verifica che il file sia valido."
-      );
+      alert("Errore nell'elaborazione del file GPX. Verifica che il file sia valido.");
     }
   }, []);
 
@@ -78,10 +86,11 @@ export default function NavBar() {
     const checkFileLoadedState = () => {
       const loadedState = loadFromLocalStorage(STORAGE_KEYS.FILE_IS_LOADED);
       fileIsLoaded.value = loadedState === "true";
-
+      
       // Se è caricato, ottieni anche il contenuto
       if (loadedState === "true") {
         fileContent.value = loadFromLocalStorage(STORAGE_KEYS.FILE_CONTENT);
+        fileName.value = loadFromLocalStorage(STORAGE_KEYS.FILE_NAME) || "";
       }
     };
 
@@ -105,13 +114,14 @@ export default function NavBar() {
     return (
       <nav class="fixed top-0 left-0 w-full bg-white shadow-md z-50 px-4 backdrop-blur-2xl">
         <div class="max-w-6xl mx-auto flex justify-between items-center py-2">
-          <h1 class="text-3xl font-bold">UTRP</h1>
+          <h1 class="text-3xl font-bold text-green-700">UTRP</h1>
           <div class="flex items-center">
             <FileUploader
               onFileLoaded={handleFileLoaded}
               onReset={handleReset}
               hasFile={fileIsLoaded.value}
               compact={true}
+              fileName={fileName.value}
             />
           </div>
         </div>

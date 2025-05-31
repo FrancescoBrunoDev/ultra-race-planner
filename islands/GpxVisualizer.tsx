@@ -1,3 +1,4 @@
+// filepath: /workspaces/ultra-race-planner/islands/GpxVisualizer.tsx
 import { useSignal } from "@preact/signals";
 import { useCallback, useEffect } from "preact/hooks";
 import {
@@ -16,6 +17,7 @@ import FileUploader from "../components/FileUploader.tsx";
 export default function GpxVisualizer() {
   const fileContent = useSignal<string | null>(null);
   const elevationData = useSignal<ElevationPoint[]>([]);
+  const fileName = useSignal<string>("");
 
   // Funzione per notificare i cambiamenti di stato del file
   const notifyFileStateChange = () => {
@@ -24,7 +26,7 @@ export default function GpxVisualizer() {
   };
 
   // Elabora il file GPX
-  const handleGpxProcess = useCallback((gpxString: string) => {
+  const handleGpxProcess = useCallback((gpxString: string, name?: string) => {
     try {
       const points = processGpxData(gpxString);
       elevationData.value = points;
@@ -32,6 +34,12 @@ export default function GpxVisualizer() {
       // Salva nel Local Storage
       saveToLocalStorage(STORAGE_KEYS.FILE_CONTENT, gpxString);
       saveToLocalStorage(STORAGE_KEYS.FILE_IS_LOADED, "true"); // Indica che un file è stato caricato
+      
+      // Salva anche il nome del file se disponibile
+      if (name) {
+        fileName.value = name;
+        saveToLocalStorage(STORAGE_KEYS.FILE_NAME, name);
+      }
 
       // Notifica il cambiamento di stato
       notifyFileStateChange();
@@ -46,6 +54,7 @@ export default function GpxVisualizer() {
   // Gestisce il reset dei dati
   const handleReset = useCallback(() => {
     removeFromLocalStorage(STORAGE_KEYS.FILE_CONTENT);
+    removeFromLocalStorage(STORAGE_KEYS.FILE_NAME);
     removeFromLocalStorage(STORAGE_KEYS.CHECKPOINTS);
     removeFromLocalStorage(STORAGE_KEYS.TARGET_TIME);
     removeFromLocalStorage(STORAGE_KEYS.USER_PACE);
@@ -55,6 +64,7 @@ export default function GpxVisualizer() {
     saveToLocalStorage(STORAGE_KEYS.FILE_IS_LOADED, "false");
     fileContent.value = null;
     elevationData.value = [];
+    fileName.value = "";
 
     // Notifica il cambiamento di stato
     notifyFileStateChange();
@@ -64,9 +74,11 @@ export default function GpxVisualizer() {
   const checkFileLoadedState = useCallback(() => {
     const loadedState = loadFromLocalStorage(STORAGE_KEYS.FILE_IS_LOADED);
     const savedContent = loadFromLocalStorage(STORAGE_KEYS.FILE_CONTENT);
+    const savedFileName = loadFromLocalStorage(STORAGE_KEYS.FILE_NAME);
 
     if (loadedState === "true" && savedContent) {
       fileContent.value = savedContent;
+      fileName.value = savedFileName || "";
 
       // Elabora i dati GPX se non sono già elaborati
       if (elevationData.value.length === 0) {
@@ -80,6 +92,7 @@ export default function GpxVisualizer() {
     } else {
       fileContent.value = null;
       elevationData.value = [];
+      fileName.value = "";
     }
   }, []);
 
@@ -102,19 +115,20 @@ export default function GpxVisualizer() {
         handleFileStateChange
       );
     };
-  }, []); // Solo al primo montaggio del componente
+  }, []);
 
   return (
-    <div className={`max-w-6xl mx-auto ${fileContent.value ? "mt-8" : ""}`}>
+    <div className={`max-w-6xl mx-auto ${fileContent.value ? 'mt-16' : ''}`}>
       {/* FileUploader mostrato solo se non c'è ancora un file caricato */}
       {!fileContent.value && (
         <FileUploader
-          onFileLoaded={(content) => {
+          onFileLoaded={(content, name) => {
             fileContent.value = content;
-            handleGpxProcess(content);
+            handleGpxProcess(content, name);
           }}
           onReset={handleReset}
           hasFile={false}
+          fileName={fileName.value}
         />
       )}
 

@@ -1,7 +1,7 @@
 import { useSignal } from "@preact/signals";
 import { useCallback, useEffect, useRef } from "preact/hooks";
 import { Chart, registerables } from "npm:chart.js";
-import { gpx } from "npm:@tmcw/togeojson@7.1.1";
+import { gpx } from "npm:@tmcw/togeojson";
 
 // Registra i componenti necessari di Chart.js
 Chart.register(...registerables);

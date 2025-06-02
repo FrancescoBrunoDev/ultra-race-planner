@@ -7,7 +7,17 @@ deno.version = "2.0.0"
 cmds = []
 
 [phases.build]
-cmds = ["deno task build"]
+cmds = [
+  # Precarica le dipendenze prima del build
+  "deno cache --reload main.ts dev.ts",
+  # Esegue il task di build
+  "deno task build"
+]
 
 [start]
 cmd = "deno run -A main.ts"
+
+# Variabili d'ambiente
+[variables]
+DENO_VERSION = "2.0.0"
+DENO_DIR = "/app/.deno"

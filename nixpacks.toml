@@ -1,0 +1,13 @@
+[phases.setup]
+nixPackages = ["deno"]
+nixOverlays = []
+deno.version = "2.0.0"
+
+[phases.install]
+cmds = []
+
+[phases.build]
+cmds = ["deno task build"]
+
+[start]
+cmd = "deno run -A main.ts"
